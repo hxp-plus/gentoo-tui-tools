@@ -37,7 +37,10 @@ fn main() {
             // Handle user input
             match evt.unwrap() {
                 Event::Key(key) => match key {
-                    Key::Ctrl('c') => return,
+                    Key::Char('q') => {
+                        terminal.clear().unwrap();
+                        return;
+                    }
                     Key::Up => {
                         if selected_index > 0 {
                             selected_index -= 1;
@@ -51,10 +54,12 @@ fn main() {
                     Key::Char('\n') => {
                         // Exit the TUI and run the command based on the selected menu item
                         terminal.clear().unwrap();
-                        // Disable raw mode for terminal before exit
-                        drop(terminal);
+                        drop(terminal); // Drop the terminal before handling selection
                         handle_selection(selected_index);
-                        unreachable!();
+                        // Reinitialize the terminal after handling selection
+                        let stdout = io::stdout().into_raw_mode().unwrap();
+                        let backend = TermionBackend::new(stdout);
+                        terminal = Terminal::new(backend).unwrap();
                     }
                     _ => {}
                 },
@@ -90,7 +95,7 @@ fn render_tui(
             let menu = List::new(menu_items.clone())
                 .block(
                     Block::default()
-                        .title("请选择（按Ctrl-C退出）")
+                        .title("请选择（按q退出）")
                         .borders(Borders::ALL),
                 )
                 .style(Style::default().fg(Color::White))
@@ -108,7 +113,7 @@ fn interactive_command(command: &mut Command) {
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
-    command.exec();
+    // command.exec();
     let status = command.status().expect("Failed to execute command");
     if status.success() {
         println!("Command executed successfully");
@@ -118,6 +123,8 @@ fn interactive_command(command: &mut Command) {
             status.code().unwrap_or(-1)
         );
     }
+    println!("Press any key to continue...");
+    io::stdin().keys().next();
 }
 
 fn launch_shell() {
