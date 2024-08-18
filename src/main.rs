@@ -4,10 +4,10 @@ use termion::event::{Event, Key};
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use tui::backend::TermionBackend;
-use tui::layout::{Constraint, Direction, Layout};
+use tui::layout::{Alignment, Constraint, Direction, Layout};
 use tui::style::{Color, Style};
 use tui::widgets::ListState;
-use tui::widgets::{Block, Borders, List, ListItem};
+use tui::widgets::{Block, Borders, List, ListItem, Paragraph};
 use tui::Terminal;
 
 fn main() {
@@ -21,7 +21,8 @@ fn main() {
         ListItem::new("启动Shell"),
         ListItem::new("更新Portage仓库"),
         ListItem::new("更新所有软件包"),
-        ListItem::new("更新内核"),
+        ListItem::new("更新内核到最新版本"),
+        ListItem::new("清理老旧内核"),
     ];
 
     // State for the selected menu item
@@ -86,12 +87,16 @@ fn render_tui(
     // Create a layout with a title and a menu
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(100)].as_ref())
+        .constraints([Constraint::Length(3), Constraint::Percentage(100)].as_ref())
         .split(size);
 
     // Render the title and the menu
     terminal
         .draw(|f| {
+            let title = Paragraph::new("Gentoo Linux 日常维护 TUI 工具")
+                .block(Block::default().borders(Borders::ALL))
+                .alignment(Alignment::Center);
+            f.render_widget(title, chunks[0]);
             let menu = List::new(menu_items.clone())
                 .block(
                     Block::default()
@@ -103,7 +108,7 @@ fn render_tui(
                 .highlight_symbol("> ");
             let mut list_state = ListState::default();
             list_state.select(Some(selected_index));
-            f.render_stateful_widget(menu, chunks[0], &mut list_state);
+            f.render_stateful_widget(menu, chunks[1], &mut list_state);
         })
         .unwrap();
 }
@@ -123,7 +128,7 @@ fn interactive_command(command: &mut Command) {
             status.code().unwrap_or(-1)
         );
     }
-    println!("Press any key to continue...");
+    println!("按Enter键继续...");
     io::stdin().keys().next();
 }
 
@@ -151,6 +156,15 @@ fn update_kernel() {
     interactive_command(&mut command);
 }
 
+fn clean_old_kernels() {
+    let mut command = Command::new("sudo");
+    let update_command = r#"
+       eclean-kernel -A -n 3
+    "#;
+    command.arg("/bin/bash").arg("-c").arg(update_command);
+    interactive_command(&mut command);
+}
+
 fn update_emerge_repo() {
     let mut command = Command::new("sudo");
     let update_command = r#"
@@ -166,6 +180,7 @@ fn handle_selection(selected_index: usize) {
         1 => update_emerge_repo(),
         2 => update_all_pkgs(),
         3 => update_kernel(),
+        4 => clean_old_kernels(),
         _ => println!("Invalid selection"),
     }
 }
