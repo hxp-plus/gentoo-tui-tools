@@ -1,5 +1,4 @@
 use std::io;
-use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
 use termion::event::{Event, Key};
 use termion::input::TermRead;
@@ -20,6 +19,7 @@ fn main() {
     // Create a list of menu items
     let menu_items = vec![
         ListItem::new("启动Shell"),
+        ListItem::new("更新Portage仓库"),
         ListItem::new("更新所有软件包"),
         ListItem::new("更新内核"),
     ];
@@ -37,7 +37,7 @@ fn main() {
             // Handle user input
             match evt.unwrap() {
                 Event::Key(key) => match key {
-                    Key::Char('q') => {
+                    Key::Ctrl('c') => {
                         terminal.clear().unwrap();
                         return;
                     }
@@ -95,7 +95,7 @@ fn render_tui(
             let menu = List::new(menu_items.clone())
                 .block(
                     Block::default()
-                        .title("请选择（按q退出）")
+                        .title("请选择（按 Ctrl-C 退出）")
                         .borders(Borders::ALL),
                 )
                 .style(Style::default().fg(Color::White))
@@ -151,11 +151,21 @@ fn update_kernel() {
     interactive_command(&mut command);
 }
 
+fn update_emerge_repo() {
+    let mut command = Command::new("sudo");
+    let update_command = r#"
+       emerge --sync
+    "#;
+    command.arg("/bin/bash").arg("-c").arg(update_command);
+    interactive_command(&mut command);
+}
+
 fn handle_selection(selected_index: usize) {
     match selected_index {
         0 => launch_shell(),
-        1 => update_all_pkgs(),
-        2 => update_kernel(),
+        1 => update_emerge_repo(),
+        2 => update_all_pkgs(),
+        3 => update_kernel(),
         _ => println!("Invalid selection"),
     }
 }
