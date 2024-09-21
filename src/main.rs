@@ -21,8 +21,10 @@ fn main() {
         ListItem::new("启动Shell"),
         ListItem::new("更新Portage仓库"),
         ListItem::new("更新所有软件包"),
+        ListItem::new("更新配置文件"),
         ListItem::new("更新内核到最新版本"),
         ListItem::new("清理老旧内核"),
+        ListItem::new("清理无用软件包"),
     ];
 
     // State for the selected menu item
@@ -174,13 +176,33 @@ fn update_emerge_repo() {
     interactive_command(&mut command);
 }
 
+fn update_conf_files() {
+    let mut command = Command::new("sudo");
+    let update_command = r#"
+       dispatch-conf
+    "#;
+    command.arg("/bin/bash").arg("-c").arg(update_command);
+    interactive_command(&mut command);
+}
+
+fn clean_unused_packages() {
+    let mut command = Command::new("sudo");
+    let update_command = r#"
+       emerge --depclean
+    "#;
+    command.arg("/bin/bash").arg("-c").arg(update_command);
+    interactive_command(&mut command);
+}
+
 fn handle_selection(selected_index: usize) {
     match selected_index {
         0 => launch_shell(),
         1 => update_emerge_repo(),
         2 => update_all_pkgs(),
-        3 => update_kernel(),
-        4 => clean_old_kernels(),
+        3 => update_conf_files(),
+        4 => update_kernel(),
+        5 => clean_old_kernels(),
+        6 => clean_unused_packages(),
         _ => println!("Invalid selection"),
     }
 }
